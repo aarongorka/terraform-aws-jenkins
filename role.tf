@@ -15,10 +15,10 @@ resource "aws_iam_role" "jenkins_role" {
   ]
 }
   EOF
-  tags = "${var.tags}"
+  tags = var.tags
 }
 
 resource "aws_iam_role_policy_attachment" "jenkins_role" {
-  role = "${aws_iam_role.jenkins_role.name}"
+  role = aws_iam_role.jenkins_role.name
   policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
 }
