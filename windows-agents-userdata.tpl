@@ -39,7 +39,7 @@ New-Item -Path "C:\" -Name "Swarm" -ItemType Directory
 Invoke-WebRequest -Uri https://repo.jenkins-ci.org/releases/org/jenkins-ci/plugins/swarm-client/3.9/swarm-client-3.9.jar -OutFile C:\Swarm\swarm.jar
 # Download WinSM wrapper to run the swarm client as a service
 Invoke-WebRequest -Uri https://github.com/winsw/winsw/releases/download/v2.8.0/WinSW.NET461.exe  -OutFile C:\Swarm\winsw.exe
-Set-Content -Path JENKINS_AGENTS_PASSWORD -Value "$((C:\Progra~1\Amazon\AWSCLI\bin\aws.exe --region=ap-southeast-2 ssm get-parameters --names "/jenkins/labs/JENKINS_AGENTS_PASSWORD"  --with-decryption | ConvertFrom-Json).parameters.Value)"
+Set-Content -Path JENKINS_AGENTS_PASSWORD -Value "$((C:\Progra~1\Amazon\AWSCLI\bin\aws.exe --region=ap-southeast-2 ssm get-parameters --names "/jenkins/${account_name}/JENKINS_AGENTS_PASSWORD"  --with-decryption | ConvertFrom-Json).parameters.Value)"
 $swarmd = "c:\Swarm"
 $text = '
 <service>
@@ -47,7 +47,7 @@ $text = '
   <name>swarm</name>
   <description>This service runs swarm client </description>
   <executable>"C:\Progra~1\Java\jre1.8.0_251\bin\javaw.exe"</executable>
-  <arguments>-jar C:\Swarm\swarm.jar -master http://internal.${dns_name}.${dns_base_name}:8080 -tunnel :43863 -fsroot C:\Jenkins -executors 1 -username agents -password JENKINS_AGENTS_PASSWORD</arguments>
+  <arguments>-jar C:\Swarm\swarm.jar -master http://${dns_name}-master.${dns_base_name}:8080 -tunnel :43863 -fsroot C:\Jenkins -executors 1 -username agents -password JENKINS_AGENTS_PASSWORD</arguments>
   <logmode>rotate</logmode>
 </service>
 '

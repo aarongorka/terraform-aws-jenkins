@@ -17,10 +17,6 @@ variable "instance_type" {
   default = "t3.medium"
 }
 
-variable "agents_cidr" {
-  description = "Agents private cidr"
-}
-
 variable "vpc_id" {
   description = "VPC ID used by the Jenkins master instance"
 }

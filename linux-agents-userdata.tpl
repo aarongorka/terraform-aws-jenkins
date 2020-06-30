@@ -44,7 +44,7 @@ Description=Jenkins Agent
 [Service]
 User=jenkins
 WorkingDirectory=/var/lib/jenkins
-ExecStart=/usr/bin/java -jar /swarm-client.jar -master https://internal.${dns_name}.${dns_base_name}:8080 -tunnel internal.${dns_name}.${dns_base_name}:43863 -fsroot /var/lib/jenkins -executors 1 -username agents -passwordEnvVariable JENKINS_AGENTS_PASSWORD
+ExecStart=/usr/bin/java -jar /swarm-client.jar -master http://${dns_name}-master.${dns_base_name}:8080 -tunnel ${dns_name}-master.${dns_base_name}:43863 -fsroot /var/lib/jenkins -executors 1 -username agents -passwordEnvVariable JENKINS_AGENTS_PASSWORD
 EnvironmentFile=/var/lib/jenkins/systemd.env
 Restart=on-failure
 RestartSec=5
