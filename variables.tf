@@ -7,6 +7,11 @@ variable "ami_id" {
   default = "ami-08589eca6dcc9b39c"
 }
 
+variable "windows_ami_id" {
+  description = "AMI ID used by the Jenkins master instance"
+  default = "ami-030bf0fa163eee558"
+}
+
 variable "instance_type" {
   description = "Instance type used by Jenkins master instance"
   default = "t3.medium"
@@ -17,17 +22,17 @@ variable "vpc_id" {
 }
 
 variable "master_subnet_ids" {
-  type = "list"
+  type = list
   description = "Subnet ID for the Jenkins master instance. Multi AZ is supported :)"
 }
 
 variable "agents_subnet_ids" {
-  type = "list"
+  type = list
   description = "Subnet IDs for the Jenkins agents."
 }
 
 variable "lb_subnet_ids" {
-  type = "list"
+  type = list
   description = "Subnet IDs for the ALB."
 }
 
@@ -69,12 +74,12 @@ variable "dns_name" {
 }
 
 variable "tags" {
-  type        = "map"
+  type        = map
   description = "Tags used for all resources except asgs"
 }
 
 variable "asg_tags" {
-  type = "list"
+  type = list
   description = "Tags used for ASGs, has an addition attribute propagate_at_launch on every map. Do not include 'Name'."
 }
 
@@ -106,4 +111,18 @@ variable "no_proxy" {
 
 variable "jenkins-cert" {
   description = "ACM Certificate Domain Name for Jenkins"
+}
+
+variable "linux_workers" {
+  type = bool
+  description = "If set to true, enable linux workers"
+}
+
+variable "windows_workers" {
+  type = bool
+  description = "If set to true, enable windows workers"
+}
+
+variable "account_name" {
+  description = "account name"
 }

@@ -7,7 +7,8 @@ yum update -y
 yum -y install java-1.8.0-openjdk make git python3 jq
 
 # Configure Docker (Note: Proxies cannot be set by daemon.json with systemd)
-mkdir -p /etc/docker
+
+chmod 757 /etc/sysconfig/docker
 
 cat <<EOF >> /etc/sysconfig/docker
 
@@ -17,6 +18,10 @@ HTTP_PROXY=${http_proxy}
 HTTPS_PROXY=${http_proxy}
 EOF
 
+chmod 644 /etc/sysconfig/docker
+
+chmod 757 /etc/docker
+
 cat <<EOF >> /etc/docker/daemon.json
 {
     "default-address-pools": [{
@@ -25,6 +30,8 @@ cat <<EOF >> /etc/docker/daemon.json
     }]
 }
 EOF
+
+chmod 755 /etc/docker
 
 # Export proxy variables
 export http_proxy=${http_proxy}
@@ -56,10 +63,9 @@ groupadd -g 100000 jenkins
 useradd -u 100000 -g jenkins -s /bin/false -c "Jenkins Automation Server" -d /var/lib/jenkins jenkins
 
 # Install Jenkins
-wget -O /etc/yum.repos.d/jenkins.repo http://pkg.jenkins-ci.org/redhat/jenkins.repo
-rpm --import http://pkg.jenkins-ci.org/redhat/jenkins-ci.org.key
-
-yum -y install jenkins
+wget -O /etc/yum.repos.d/jenkins.repo http://pkg.jenkins.io/redhat-stable/jenkins.repo
+rpm --import http://pkg.jenkins.io/redhat-stable/jenkins.io.key
+yum install jenkins -y
 
 chown jenkins:jenkins /var/lib/jenkins
 
@@ -75,5 +81,38 @@ systemctl enable jenkins
 systemctl start jenkins
 
 # Start the jenkins-autoscaler container (https://github.com/aarongorka/docker-jenkins-autoscaler)
-export JENKINS_METRICS_PASSWORD=$(aws --region=ap-southeast-2 ssm get-parameters --names "JENKINS_AGENTS_PASSWORD" --with-decryption | jq -r '.["Parameters"][0]["Value"]')  # Prevent password from showing in `ps`
+export JENKINS_METRICS_PASSWORD=$(aws --region=ap-southeast-2 ssm get-parameters --names "/jenkins/${account_name}/JENKINS_METRICS_PASSWORD" --with-decryption | jq -r '.["Parameters"][0]["Value"]')  
+# Prevent password from showing in `ps`
 docker run -d --restart=always --net=host -e HTTPS_PROXY=${http_proxy} -e NO_PROXY=${no_proxy} -e JENKINS_METRICS_USERNAME=agents -e JENKINS_METRICS_PASSWORD -e JENKINS_METRICS_MASTER=${dns_name}.${dns_base_name} aarongorka/jenkins-autoscaler:1.0.0
+
+sleep 60
+
+# Downloading the jenkins cli
+curl localhost:8080/jnlpJars/jenkins-cli.jar -o /home/ec2-user/jenkins-cli.jar
+
+# Creating the admin and agents users
+while [[ $(aws --region=ap-southeast-2 ssm get-parameters --names "/jenkins/${account_name}/JENKINS_MASTER_PASSWORD" --with-decryption | jq -r '.["Parameters"][0]["Value"]') == "" ]]
+do
+    sleep 15
+done
+
+logger "getting ssm parameters"
+export MASTER_PASSWORD=$(aws --region=ap-southeast-2 ssm get-parameters --names "/jenkins/${account_name}/JENKINS_MASTER_PASSWORD" --with-decryption | jq -r '.["Parameters"][0]["Value"]')
+export AGENTS_PASSWORD=$(aws --region=ap-southeast-2 ssm get-parameters --names "/jenkins/${account_name}/JENKINS_AGENTS_PASSWORD" --with-decryption | jq -r '.["Parameters"][0]["Value"]')
+
+logger "$MASTER_PASSWORD"
+logger "$AGENTS_PASSWORD"
+
+echo 'jenkins.model.Jenkins.instance.securityRealm.createAccount("admin", "'$MASTER_PASSWORD'")' | java -jar /home/ec2-user/jenkins-cli.jar -auth admin:$(cat /var/lib/jenkins/secrets/initialAdminPassword) -s http://localhost:8080/ groovy =
+
+echo 'jenkins.model.Jenkins.instance.securityRealm.createAccount("agents", "'$AGENTS_PASSWORD'")' | java -jar /home/ec2-user/jenkins-cli.jar -auth admin:$MASTER_PASSWORD -s http://localhost:8080/ groovy =
+
+# Installing swarm plugin
+java -jar /home/ec2-user/jenkins-cli.jar -s http://localhost:8080/ -auth admin:$MASTER_PASSWORD install-plugin swarm -deploy 
+
+# Enable JNLP port on 43863, save this configuration and restart jenkins
+echo 'jenkins.model.Jenkins.instance.setSlaveAgentPort(43863)' | java -jar /home/ec2-user/jenkins-cli.jar -auth admin:$MASTER_PASSWORD -s http://localhost:8080/ groovy =
+
+echo 'jenkins.model.Jenkins.instance.save()' | java -jar /home/ec2-user/jenkins-cli.jar -auth admin:$MASTER_PASSWORD -s http://localhost:8080/ groovy =
+
+java -jar /home/ec2-user/jenkins-cli.jar -s http://localhost:8080/ -auth admin:$MASTER_PASSWORD restart

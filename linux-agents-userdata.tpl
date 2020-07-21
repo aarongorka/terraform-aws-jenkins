@@ -44,7 +44,7 @@ Description=Jenkins Agent
 [Service]
 User=jenkins
 WorkingDirectory=/var/lib/jenkins
-ExecStart=/usr/bin/java -jar /swarm-client.jar -master https://${dns_name}.${dns_base_name} -tunnel ${dns_name}-master.${dns_base_name}:43863 -fsroot /var/lib/jenkins -executors 1 -username agents -passwordEnvVariable JENKINS_AGENTS_PASSWORD
+ExecStart=/usr/bin/java -jar /swarm-client.jar -master http://${dns_name}-master.${dns_base_name}:8080 -tunnel ${dns_name}-master.${dns_base_name}:43863 -fsroot /var/lib/jenkins -executors 1 -username agents -passwordEnvVariable JENKINS_AGENTS_PASSWORD
 EnvironmentFile=/var/lib/jenkins/systemd.env
 Restart=on-failure
 RestartSec=5
@@ -66,7 +66,7 @@ groupadd -g 100000 jenkins
 useradd -u 100000 -g jenkins -s /bin/false -c "Jenkins Automation Server" -d /var/lib/jenkins jenkins
 
 # Password required for Jenkins Swarm plugin to connect to the master
-echo "JENKINS_AGENTS_PASSWORD=$(aws --region=ap-southeast-2 ssm get-parameters --names "JENKINS_AGENTS_PASSWORD" --with-decryption | jq -r '.["Parameters"][0]["Value"]')" >> /var/lib/jenkins/systemd.env
+echo "JENKINS_AGENTS_PASSWORD=$(aws --region=ap-southeast-2 ssm get-parameters --names "/jenkins/${account_name}/JENKINS_AGENTS_PASSWORD" --with-decryption | jq -r '.["Parameters"][0]["Value"]')" >> /var/lib/jenkins/systemd.env
 sudo chmod 0400 /var/lib/jenkins/systemd.env
 
 # Install Jenkins agent
