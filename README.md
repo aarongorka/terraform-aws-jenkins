@@ -34,6 +34,8 @@ A Terraform module that deploys a multi-az master using [ebs-pin][] and a spot A
 | no\_proxy | Proxy exceptions used in the Jenkins userdata script | string | n/a | yes |
 | tags | Tags used for all resources except asgs | map | n/a | yes |
 | vpc\_id | VPC ID used by the Jenkins master instance | string | n/a | yes |
+| linux\_workers | Linux workers used by the Jenkins master instance | bool | n/a | yes |
+| windows\_workers | Windows workers used by the Jenkins master instance | bool | n/a | yes |
 
 ## Outputs
 
@@ -41,13 +43,3 @@ A Terraform module that deploys a multi-az master using [ebs-pin][] and a spot A
 |------|-------------|
 | master\_ssh | SSH to access the Jenkins master instance |
 | url | URL to access the Jenkins UI |
-
-## Manual Steps Required
-
-  1. Go through Jenkins setup, install recommended plugins and configure the proxy if required
-  2. Install `Self-Organizing Swarm Plug-in Modules` and Blue Ocean plugin
-  3. Enable JNLP port on 43863
-  4. Create a local Jenkins service account called "agents" and put password in SSM with the key `JENKINS_AGENTS_PASSWORD`.
-  5. Terminate agents and ensure they connect. Set number of build executors on the master to 0 (Manage Jenkins -> Manage Nodes -> Master).
-  6. Terminate the master and ensure that it reboots with the correct data, and that metrics from [jenkins-autoscaler][] are being output to CloudWatch Metrics
-  7. Configure SCM plugins if required
