@@ -9,7 +9,7 @@ variable "ami_id" {
 
 variable "windows_ami_id" {
   description = "AMI ID used by the Jenkins master instance"
-  default = "ami-030bf0fa163eee558"
+  default = "ami-0bbaefd8648c81cc8"
 }
 
 variable "instance_type" {
